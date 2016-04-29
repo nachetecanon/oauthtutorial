@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.oauth2.client.EnableOAuth2Sso;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.ResourceServerProperties;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.UserInfoTokenServices;
+import org.springframework.boot.context.embedded.FilterRegistrationBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.filter.OAuth2ClientAuthenticationProcessingFilter;
+import org.springframework.security.oauth2.client.filter.OAuth2ClientContextFilter;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableOAuth2Client;
@@ -94,6 +96,26 @@ public class SimpleApplication extends WebSecurityConfigurerAdapter {
         filter.setFilters(filters);
         return filter;
 
+    }
+    @Bean
+    public FilterRegistrationBean oauth2ClientFilterRegistration(
+            OAuth2ClientContextFilter filter) {
+        FilterRegistrationBean registration = new FilterRegistrationBean();
+        registration.setFilter(filter);
+        registration.setOrder(-100);
+        return registration;
+    }
+
+    @Bean
+    @ConfigurationProperties("github.client")
+    OAuth2ProtectedResourceDetails github() {
+        return new AuthorizationCodeResourceDetails();
+    }
+
+    @Bean
+    @ConfigurationProperties("github.resource")
+    ResourceServerProperties githubResource() {
+        return new ResourceServerProperties();
     }
 
     private CsrfTokenRepository csrfTokenRepository() {

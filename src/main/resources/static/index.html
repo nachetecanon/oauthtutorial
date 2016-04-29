@@ -16,6 +16,7 @@
                 var self = this;
                 $http.get("/user").success(function(data) {
                         self.user = data.userAuthentication.details.name;
+                        console.info(data.userAuthentication.details);
                         self.authenticated = true;
                         }).error(function() {
                         self.user = "N/A";
