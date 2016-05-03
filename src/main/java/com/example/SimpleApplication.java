@@ -3,7 +3,6 @@ package com.example;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.security.oauth2.client.EnableOAuth2Sso;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.ResourceServerProperties;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.UserInfoTokenServices;
 import org.springframework.boot.context.embedded.FilterRegistrationBean;
@@ -65,15 +64,15 @@ public class SimpleApplication extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    @ConfigurationProperties("facebook.client")
-    OAuth2ProtectedResourceDetails facebook() {
-        return new AuthorizationCodeResourceDetails();
+    @ConfigurationProperties("github")
+    ClientResources github() {
+        return new ClientResources();
     }
 
     @Bean
-    @ConfigurationProperties("facebook.resource")
-    ResourceServerProperties facebookResource() {
-        return new ResourceServerProperties();
+    @ConfigurationProperties("facebook")
+    ClientResources facebook() {
+        return new ClientResources();
     }
 
     private Filter ssoFilter() {
@@ -81,22 +80,21 @@ public class SimpleApplication extends WebSecurityConfigurerAdapter {
         CompositeFilter filter = new CompositeFilter();
         List<Filter> filters = new ArrayList<>();
 
-        OAuth2ClientAuthenticationProcessingFilter facebookFilter = new OAuth2ClientAuthenticationProcessingFilter("/login/facebook");
-        OAuth2RestTemplate facebookTemplate = new OAuth2RestTemplate(facebook(), oauth2ClientContext);
-        facebookFilter.setRestTemplate(facebookTemplate);
-        facebookFilter.setTokenServices(new UserInfoTokenServices(facebookResource().getUserInfoUri(), facebook().getClientId()));
-        filters.add(facebookFilter);
-
-        OAuth2ClientAuthenticationProcessingFilter githubFilter = new OAuth2ClientAuthenticationProcessingFilter("/login/github");
-        OAuth2RestTemplate githubTemplate = new OAuth2RestTemplate(github(), oauth2ClientContext);
-        githubFilter.setRestTemplate(githubTemplate);
-        githubFilter.setTokenServices(new UserInfoTokenServices(githubResource().getUserInfoUri(), github().getClientId()));
-        filters.add(githubFilter);
-
+        filters.add(getFilter(facebook(), "/login/facebook"));
+        filters.add(getFilter(github(), "/login/github"));
         filter.setFilters(filters);
         return filter;
 
     }
+
+    private Filter getFilter(ClientResources client, String path) {
+        OAuth2ClientAuthenticationProcessingFilter filter = new OAuth2ClientAuthenticationProcessingFilter(path);
+        OAuth2RestTemplate filterTemplate = new OAuth2RestTemplate(client.getClient(), oauth2ClientContext);
+        filter.setRestTemplate(filterTemplate);
+        filter.setTokenServices(new UserInfoTokenServices(client.getResource().getUserInfoUri(), client.getResource().getClientId()));
+        return filter;
+    }
+
     @Bean
     public FilterRegistrationBean oauth2ClientFilterRegistration(
             OAuth2ClientContextFilter filter) {
@@ -106,17 +104,6 @@ public class SimpleApplication extends WebSecurityConfigurerAdapter {
         return registration;
     }
 
-    @Bean
-    @ConfigurationProperties("github.client")
-    OAuth2ProtectedResourceDetails github() {
-        return new AuthorizationCodeResourceDetails();
-    }
-
-    @Bean
-    @ConfigurationProperties("github.resource")
-    ResourceServerProperties githubResource() {
-        return new ResourceServerProperties();
-    }
 
     private CsrfTokenRepository csrfTokenRepository() {
         HttpSessionCsrfTokenRepository repository = new HttpSessionCsrfTokenRepository();
@@ -142,5 +129,18 @@ public class SimpleApplication extends WebSecurityConfigurerAdapter {
                 filterChain.doFilter(request, response);
             }
         };
+    }
+
+    private class ClientResources {
+        private OAuth2ProtectedResourceDetails client = new AuthorizationCodeResourceDetails();
+        private ResourceServerProperties resource = new ResourceServerProperties();
+
+        public OAuth2ProtectedResourceDetails getClient() {
+            return client;
+        }
+
+        public ResourceServerProperties getResource() {
+            return resource;
+        }
     }
 }
