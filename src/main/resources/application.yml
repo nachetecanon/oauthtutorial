@@ -1,5 +1,7 @@
 spring.resources.chain.enabled: true
-
+server.contextPath: /oauthclient
+logging.level.org.springframework.security.web: info
+logging.level.org.thymeleaf: info
 facebook:
   client:
     clientId: 777732928993684
